@@ -1,0 +1,5 @@
+pygame==2.5.2  # For UI rendering
+numpy==1.24.3   # For numerical computations
+pandas==2.0.3   # For data manipulation and financial calculations
+pytest==7.4.3   # For testing
+black==23.11.0  # For code formatting 
