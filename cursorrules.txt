@@ -1,0 +1,167 @@
+1. Project Overview
+Goal: Create a turn-based (once-a-year) simulation game where the player manages an insurance firm at the line-state level.
+Focus Areas:
+internal firm management
+Pricing strategies
+Investment and reserve management
+Reinsurance options
+Regulatory compliance and capital requirements
+Future Expansion: Transition to multiplayer using boardgame.io while keeping the core simulation logic modular.
+2. Technology Stack and Tools
+Programming Language: Python
+2D GUI Library: Use a Python GUI framework such as PyQt5 or PySide2. (Alternatively, for a more game-like interface, consider using Pygame.)
+Data Handling: Use Python’s standard libraries (like random for stochastic processes, json for saving game state, etc.).
+AI Competitors: Implement AI routines with simple heuristics in Python.
+Future Framework: Aim to refactor core logic for use with boardgame.io (a JavaScript framework) for multiplayer.
+Version Control: Git for source code management.
+3. Project Structure
+Organize your project into modules to separate concerns. For example:
+
+main.py – Entry point of the application.
+models.py – Define core classes:
+GameState 
+Company
+MarketSegment
+FinancialReport
+game_logic.py – Contains simulation functions for turn resolution and rule enforcement.
+simulation.py – Implements the core mechanics (pricing, claims, investments, reinsurance, regulations).
+ui.py – Handles the GUI using PyQt (or chosen GUI toolkit), menus, and data display.
+ai_competitor.py – Implements AI behavior for competitor companies.
+utils.py – Utility functions (e.g., random event generators, state serialization).
+4. Game Structure and Turn-Based Mechanics
+Turn Flow
+Each turn represents one year. Structure each turn into three main phases:
+
+Input Phase:
+
+The player sets decisions for each segment, including:
+Pricing: Adjust premium rates per insurance line and state.
+Investments: Allocate funds among bonds (fixed return) and stocks (variable return).
+Reinsurance: Choose reinsurance options (e.g., quota-share or excess-of-loss).
+Display the current state and historical performance in menus and tables.
+Resolution Phase:
+
+The simulation calculates outcomes:
+Market demand based on pricing decisions (using a price-demand curve).
+Generation of claims (using probabilistic models, e.g., Poisson or normal distributions).
+Investment returns applied to the available capital.
+Impact of reinsurance on reducing claims.
+Regulatory checks (capital ratios, reserve adequacy).
+Include random events (e.g., catastrophic events in specific states) to simulate real-world uncertainty.
+Report Phase:
+
+Update and display the financial reports:
+Income Statement (premiums, claims, expenses, investment income).
+Balance Sheet (capital, reserves, liabilities).
+Key metrics (loss ratios, combined ratios, solvency ratios).
+Core Game Loop
+State Machine: Develop a game state machine to transition between phases.
+Turn Counter: Increment a turn counter after each complete cycle.
+Event Handling: Process events (player decisions, AI decisions, random events) to update the state.
+5. Core Simulation Mechanics
+a. Pricing Mechanism
+Demand Model:
+Use a simple elasticity model: Lower prices → Higher market share, but reduced profit per policy.
+Compute expected claims per policy using a basic actuarial model (expected loss frequency and severity).
+Feedback: Display market share and loss ratios in the financial reports after each turn.
+b. Investment & Reserves Management
+Reserves:
+Automatically allocate a fixed percentage of premiums to claim reserves.
+Model claim payouts over multiple turns to simulate delayed loss settlement.
+Investments:
+Allow allocation between bonds (fixed rate, e.g., 2% per turn) and stocks (variable, random returns with a defined mean and variance).
+Reflect investment income in the financial report.
+c. Reinsurance
+Options:
+Present reinsurance plans in a menu: “None,” “Basic,” or “Extensive.”
+Each option reduces effective claims at a cost (premium) and may affect regulatory capital requirements.
+Simulation: Apply a reinsurance factor during the resolution phase to reduce claims based on player selection.
+d. Regulatory Requirements & Capital Adequacy
+Capital Requirements:
+Define a minimum solvency ratio (e.g., Capital / Net Premiums must be above a threshold).
+If the player’s ratio falls below the threshold, trigger a warning or penalty.
+Rate Approval Constraints:
+Optionally, limit how drastically premium rates can change in one turn to simulate regulatory oversight.
+6. Market Simulation (Line-State Level)
+Segmentation:
+Represent the market as multiple segments (each a combination of an insurance line and a state).
+Example segments: “Auto – California”, “Home – Florida”, etc.
+Market Size:
+Assign each segment a total available premium volume (modifiable by economic growth factors each turn).
+Competitor Behavior:
+AI competitors use preset or randomized pricing strategies.
+Their decisions are simulated in ai_competitor.py and affect overall market dynamics.
+Random Events:
+Occasionally trigger events (e.g., natural disasters) that affect specific segments, increasing claims.
+7. User Interface Design
+a. Dashboard & Main Menu
+Overview Screen:
+Show turn number, overall financial metrics, and alerts (e.g., capital warnings).
+Use QTableWidget (or an equivalent widget) to display summary data.
+b. Decision Menus
+Pricing Menu:
+Display a table of current premiums for each segment with input fields or sliders to adjust values.
+Investment Menu:
+Provide sliders or input boxes to set asset allocation between bonds and stocks.
+Reinsurance Menu:
+List available reinsurance options with descriptions and costs.
+c. Financial Report Screen
+Reports:
+Income Statement and Balance Sheet presented in a clear tabular format.
+Highlight key metrics (loss ratio, solvency ratio) and trends over turns.
+d. Implementation Tips
+Keep the interface simple and intuitive.
+Use tooltips or help pop-ups to explain technical terms (e.g., Loss Ratio, Combined Ratio).
+Ensure navigation between screens is seamless.
+8. AI Competitors
+Design AI Behavior:
+Each AI competitor is an instance of the Company class with its own decision-making logic.
+Implement simple heuristics: e.g., if the market premium is high, the AI might lower prices to gain share, or if its capital is low, it might choose more conservative investments.
+Randomization:
+Introduce randomness in their decisions to simulate unpredictability.
+Integration:
+Run AI routines in parallel with the player’s inputs during the Input Phase.
+Ensure their decisions update the global market state for a realistic competitive environment.
+9. Future Multiplayer Considerations
+Modular Game Logic:
+Keep the core simulation independent from the UI so it can later be integrated with boardgame.io.
+Data Serialization:
+Use JSON or similar to export/import game state for network synchronization.
+Multiplayer Turn Resolution:
+Design the turn resolution logic to accept decisions from multiple players simultaneously.
+Ensure deterministic outcomes by seeding random events or logging RNG sequences.
+Networking:
+Document interfaces between game state and UI to ease porting to boardgame.io in a future version.
+10. Testing and Iteration
+Unit Testing:
+Write tests for each simulation function (pricing, claims generation, investment returns, etc.).
+Integration Testing:
+Simulate several turns with known inputs to verify that the game state updates correctly.
+User Testing:
+Run initial tests with sample players to get feedback on UI clarity and game balance.
+Iteration:
+Plan for iterative refinement: start with basic mechanics and gradually add complexity as needed.
+11. Timeline and Milestones
+Weeks 1-2:
+
+Set up project repository and define basic module structure.
+Develop a prototype of the UI dashboard and menus using PyQt.
+Weeks 3-4:
+
+Implement core game state classes and turn-based logic.
+Develop simulation functions for pricing, claims, investments, reinsurance, and regulations.
+Week 5:
+
+Integrate AI competitor routines and simulate market dynamics.
+Create detailed financial reports and test turn resolution.
+Week 6:
+
+Refine the UI, ensure all screens are functional, and incorporate random events.
+Conduct thorough testing (unit, integration, user testing) and prepare documentation.
+Future Milestone:
+
+Refactor core game logic for multiplayer integration using boardgame.io.
+12. Final Notes
+Maintain clear code documentation and comments to facilitate the AI’s code generation process.
+Use clean interfaces between modules to allow easy future modifications.
+Keep the simulation realistic but straightforward so that educational objectives remain the focus.
