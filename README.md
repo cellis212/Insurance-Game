@@ -34,7 +34,15 @@ A business simulation game where you manage an insurance company, make strategic
 - Key performance metrics
 - Turn-by-turn summaries
 
-### Browser & Mobile Support (New!)
+### Data Analytics & Visualization (New!)
+- Generate beautiful data visualizations using R
+- Track financial performance trends
+- Analyze market share by line of business
+- Compare premium rates with competitors
+- Monitor loss ratio and combined ratio trends
+- Visualize investment performance
+
+### Browser & Mobile Support
 - Play in any modern web browser
 - Progressive Web App (PWA) support
 - Install on home screens of mobile devices
@@ -48,6 +56,10 @@ A business simulation game where you manage an insurance company, make strategic
 2. Install the required dependencies:
 ```bash
 pip install -r requirements.txt
+```
+3. For data visualization features, install R 4.0+ with these packages:
+```R
+install.packages(c("ggplot2", "dplyr", "reshape2"))
 ```
 
 ## Running the Game
@@ -105,7 +117,13 @@ The deployable web version will be in the `build/web` directory. See `deployment
    - Track portfolio value
    - Balance risk and return
 
-4. **Turn Structure**
+4. **Using Analytics**
+   - Click the "Analytics" button in the top menu
+   - Alternatively, press Ctrl+A to generate reports
+   - Review visualizations in the analytics/plots folder
+   - Use insights to refine your strategy
+
+5. **Turn Structure**
    - Each turn represents one quarter
    - Review financial results
    - Adjust strategy based on performance
@@ -124,6 +142,7 @@ Current features implemented:
 - Progressive Web App (PWA) support
 - Touch screen controls for mobile
 - Offline play capability
+- Data visualization and analytics with R
 
 Under development:
 - AI competitors
@@ -140,6 +159,18 @@ For debugging help, run:
 python browser_debug.py
 ```
 This will create a debug version with extra logging to browser console.
+
+## Analytics
+
+The game includes powerful data visualization capabilities using R:
+
+- Financial performance tracking
+- Market share analysis
+- Premium rate comparison with competitors
+- Loss ratio and combined ratio trends
+- Investment performance tracking
+
+For more details, see `analytics/README.md`.
 
 ## Deployment
 
