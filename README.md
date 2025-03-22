@@ -34,6 +34,14 @@ A business simulation game where you manage an insurance company, make strategic
 - Key performance metrics
 - Turn-by-turn summaries
 
+### Browser & Mobile Support (New!)
+- Play in any modern web browser
+- Progressive Web App (PWA) support
+- Install on home screens of mobile devices
+- Touch screen controls
+- Offline play capability
+- Responsive design for all screen sizes
+
 ## Setup
 
 1. Make sure you have Python 3.8+ installed
@@ -44,10 +52,39 @@ pip install -r requirements.txt
 
 ## Running the Game
 
-To start the game, run:
+### Desktop Version
+To start the game on desktop, run:
 ```bash
 python main.py
 ```
+
+### Browser Version
+You can now play the game in any modern web browser:
+
+#### Running the development server:
+```bash
+# PowerShell
+.\run_server.ps1
+
+# Or run in background and automatically open browser:
+.\run_server_background.ps1
+
+# Or using Python directly
+python -m pygbag --ume_block 0 --port 8000 .
+```
+
+Then open your browser to: http://localhost:8000
+
+#### Building for web deployment:
+```bash
+# PowerShell
+.\build_web.ps1
+
+# Or using Python directly
+python -m pygbag --ume_block 0 --build .
+```
+
+The deployable web version will be in the `build/web` directory. See `deployment_guide.html` for detailed hosting instructions.
 
 ## Gameplay Guide
 
@@ -82,10 +119,33 @@ Current features implemented:
 - Two-state market system
 - Financial reporting
 - Market dynamics simulation
+- Browser-based gameplay with Pygbag
+- Game state saving/loading (desktop and browser localStorage)
+- Progressive Web App (PWA) support
+- Touch screen controls for mobile
+- Offline play capability
 
 Under development:
 - AI competitors
 - Additional states
 - Reinsurance system
-- Save/Load functionality
-- Macroeconomic factors 
+- Macroeconomic factors
+
+## Testing
+
+For browser version testing, see `manual_test.md` which provides a systematic approach for verifying functionality.
+
+For debugging help, run:
+```bash
+python browser_debug.py
+```
+This will create a debug version with extra logging to browser console.
+
+## Deployment
+
+The browser version can be deployed to:
+- GitHub Pages
+- Netlify
+- Any standard web hosting
+
+See `deployment_guide.html` for detailed instructions. 

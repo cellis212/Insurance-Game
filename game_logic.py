@@ -1,31 +1,8 @@
 from typing import List, Dict
-from models import Company, MarketSegment, FinancialReport
 import numpy as np
-
-class Asset:
-    """Represents a specific investment asset with price and income characteristics."""
-    def __init__(self, name, current_price, dividend_yield, volatility):
-        self.name = name
-        self.current_price = current_price
-        self.dividend_yield = dividend_yield  # Annual yield
-        self.volatility = volatility  # Standard deviation for price changes
-        self.price_history = [current_price]
-
-    def update_price(self):
-        """Update the asset price with random walk and volatility."""
-        # Random walk with drift
-        drift = 0.05  # 5% annual expected return
-        daily_drift = drift / 252  # Convert to daily
-        daily_vol = self.volatility / np.sqrt(252)  # Convert to daily
-        
-        # Generate random return
-        random_return = np.random.normal(daily_drift, daily_vol)
-        self.current_price *= (1 + random_return)
-        self.price_history.append(self.current_price)
-    
-    def get_quarterly_income(self, shares):
-        """Calculate quarterly dividend/interest income."""
-        return (self.dividend_yield * self.current_price * shares) / 4
+from models import Company, MarketSegment, FinancialReport, AICompetitor
+from asset import Asset
+from market_dynamics import MarketDynamics
 
 class GameState:
     """Manages the overall game state and progression."""
@@ -38,8 +15,36 @@ class GameState:
             investments={},  # Will store {asset_name: shares}
             policies_sold={},
             claims_history=[],
-            premium_rates={}
+            premium_rates={},
+            advertising_budget={}  # New: advertising budget per line
         )
+        
+        # Initialize AI competitors
+        self.ai_competitors = [
+            AICompetitor("Aggressive Insurance Co.", cash=1000000.0, risk_profile="aggressive"),
+            AICompetitor("Balanced Insurance Co.", cash=1000000.0, risk_profile="balanced"),
+            AICompetitor("Conservative Insurance Co.", cash=1000000.0, risk_profile="conservative")
+        ]
+        
+        # Initialize market dynamics
+        self.market = MarketDynamics()
+        
+        # Track which states are unlocked
+        self.unlocked_states = {state_id: False for state_id in self.market.states}
+        self.unlocked_states[initial_state] = True  # First state is free
+        
+        # Initialize advertising budgets for AI competitors
+        for competitor in self.ai_competitors:
+            competitor.advertising_budget = {}
+            for state_id in self.market.states:
+                for line in ["home", "auto"]:
+                    line_id = f"{state_id}_{line}"
+                    if competitor.risk_profile == "aggressive":
+                        competitor.advertising_budget[line_id] = 50000  # Spends more on advertising
+                    elif competitor.risk_profile == "conservative":
+                        competitor.advertising_budget[line_id] = 20000  # Spends less on advertising
+                    else:
+                        competitor.advertising_budget[line_id] = 35000  # Balanced spending
         
         # Initialize investment assets
         self.investment_assets = {
@@ -75,72 +80,21 @@ class GameState:
             )
         }
         
-        # Define states and their characteristics
-        self.states = {
-            "CA": {
-                "name": "California",
-                "catastrophe_risk": 0.01,  # 1% chance of earthquake per year
-                "cat_severity": np.log(500000),  # Average catastrophe claim $500k
-                "market_size_multiplier": 1.5,  # Larger market
-                "entry_cost": 500000  # $500k to enter
-            },
-            "FL": {
-                "name": "Florida",
-                "catastrophe_risk": 0.05,  # 5% chance of hurricane per year
-                "cat_severity": np.log(250000),  # Average catastrophe claim $250k
-                "market_size_multiplier": 1.0,  # Base market size
-                "entry_cost": 300000  # $300k to enter
-            }
-        }
+        # Get states from market dynamics
+        self.states = self.market.states
         
-        # Track which states are unlocked
-        self.unlocked_states = {state_id: False for state_id in self.states}
-        self.unlocked_states[initial_state] = True  # First state is free
+        # Get market segments from market dynamics
+        self.market_segments = self.market.market_segments
         
-        # Define insurance lines with their characteristics for each state
-        self.market_segments = {}
-        for state_id, state_info in self.states.items():
-            # Home insurance in this state
-            self.market_segments[f"{state_id}_home"] = MarketSegment(
-                name=f"Home Insurance - {state_info['name']}",
-                base_risk=0.05,  # 5% chance of regular claim per year
-                price_sensitivity=1.2,
-                market_size=int(2000 * state_info["market_size_multiplier"]),
-                current_demand=int(1500 * state_info["market_size_multiplier"])
-            )
-            # Auto insurance in this state
-            self.market_segments[f"{state_id}_auto"] = MarketSegment(
-                name=f"Auto Insurance - {state_info['name']}",
-                base_risk=0.15,  # 15% chance of claim per year
-                price_sensitivity=1.5,
-                market_size=int(5000 * state_info["market_size_multiplier"]),
-                current_demand=int(4000 * state_info["market_size_multiplier"])
-            )
+        # Get base market rates from market dynamics
+        self.base_market_rates = self.market.base_market_rates
         
-        # Initialize base market rates for each line in each state
-        self.base_market_rates = {}
-        for state_id, state_info in self.states.items():
-            # Add catastrophe risk loading to home insurance
-            cat_loading = state_info["catastrophe_risk"] * np.exp(state_info["cat_severity"])
-            
-            self.base_market_rates[f"{state_id}_home"] = 1200 + cat_loading
-            self.base_market_rates[f"{state_id}_auto"] = 900
-        
-        # Define claim severity distributions for each line
+        # Get claim distributions from market dynamics
         self.claim_distributions = {}
         for state_id, state_info in self.states.items():
-            # Regular claims for home insurance
-            self.claim_distributions[f"{state_id}_home"] = {
-                "mean": np.log(24000),  # Average home claim $24,000
-                "sigma": 0.7,           # Higher variation in home claims
-                "cat_mean": state_info["cat_severity"],  # Catastrophe severity
-                "cat_risk": state_info["catastrophe_risk"]  # Catastrophe frequency
-            }
-            # Auto insurance claims
-            self.claim_distributions[f"{state_id}_auto"] = {
-                "mean": np.log(6000),   # Average auto claim $6,000
-                "sigma": 0.5            # Lower variation in auto claims
-            }
+            for line in ["home", "auto"]:
+                line_id = f"{state_id}_{line}"
+                self.claim_distributions[line_id] = self.market.get_claim_distribution(line_id)
         
         self.financial_history: List[FinancialReport] = []
     
@@ -159,53 +113,107 @@ class GameState:
     
     def update(self):
         """Update game state for the current turn."""
-        self._update_policies()
+        # Update AI competitors first
+        for competitor in self.ai_competitors:
+            competitor.make_decisions(self)
+        
+        # Collect all advertising budgets
+        advertising_budgets = {
+            self.player_company.name: self.player_company.advertising_budget
+        }
+        for competitor in self.ai_competitors:
+            advertising_budgets[competitor.name] = competitor.advertising_budget
+        
+        # Update market with new consumer model
+        self.market.update_market(self.player_company, self.ai_competitors, advertising_budgets)
+        
         self._generate_claims()
-        self._update_market_demand()
         self._calculate_investment_returns()
         self._generate_financial_report()
+        
+        # Deduct advertising costs
+        self._process_advertising_costs()
+        
         self.current_turn += 1
     
-    def _update_policies(self):
-        """Update the number of policies based on premium rates and market conditions."""
-        new_policies = {}
+    def _process_advertising_costs(self):
+        """Process advertising costs for all companies."""
+        # Player company
+        for line_id, budget in self.player_company.advertising_budget.items():
+            self.player_company.cash -= budget
         
-        for line_id, segment in self.market_segments.items():
-            state_id = line_id.split("_")[0]
-            # Only update policies for unlocked states
-            if self.unlocked_states[state_id]:
-                # Get player's premium rate for this line
-                premium_rate = self.player_company.premium_rates.get(line_id, self.base_market_rates[line_id])
-                
-                # Calculate relative price compared to market average
-                relative_price = premium_rate / self.base_market_rates[line_id]
-                
-                # Calculate potential policies based on price sensitivity
-                potential_policies = segment.calculate_demand(premium_rate, [self.base_market_rates[line_id]])
-                
-                # Add random variation (±10%)
-                variation = np.random.uniform(0.9, 1.1)
-                new_policies[line_id] = int(potential_policies * variation)
-            else:
-                new_policies[line_id] = 0
+        # AI competitors
+        for competitor in self.ai_competitors:
+            for line_id, budget in competitor.advertising_budget.items():
+                competitor.cash -= budget
+    
+    def set_advertising_budget(self, line_id: str, amount: float) -> bool:
+        """Set advertising budget for a specific line. Returns True if successful."""
+        if amount < 0:
+            return False
         
-        self.player_company.policies_sold = new_policies
+        state_id = line_id.split("_")[0]
+        if not self.unlocked_states[state_id]:
+            return False
+        
+        if amount > self.player_company.cash:
+            return False
+        
+        self.player_company.advertising_budget[line_id] = amount
+        return True
+    
+    def get_market_share(self, line_id: str) -> float:
+        """Calculate market share for a specific line."""
+        total_policies = sum(
+            comp.policies_sold.get(line_id, 0) 
+            for comp in [self.player_company] + self.ai_competitors
+        )
+        
+        if total_policies == 0:
+            return 0.0
+        
+        return self.player_company.policies_sold.get(line_id, 0) / total_policies
+    
+    def get_competitor_info(self, line_id: str) -> List[Dict]:
+        """Get competitor information for a specific line."""
+        info = []
+        for company in [self.player_company] + self.ai_competitors:
+            info.append({
+                "name": company.name,
+                "premium": company.premium_rates.get(line_id, self.market.base_market_rates[line_id]),
+                "policies": company.policies_sold.get(line_id, 0),
+                "advertising": company.advertising_budget.get(line_id, 0)
+            })
+        return info
     
     def _generate_claims(self):
         """Generate insurance claims based on line characteristics and catastrophes."""
+        # Process claims for player company
+        self._process_company_claims(self.player_company)
+        
+        # Process claims for AI competitors
+        for competitor in self.ai_competitors:
+            self._process_company_claims(competitor)
+    
+    def _process_company_claims(self, company):
+        """Process claims for a specific company."""
         # First, collect premium revenue for the quarter
         premium_revenue = sum(
-            self.player_company.premium_rates.get(line_id, self.base_market_rates[line_id]) * policies
-            for line_id, policies in self.player_company.policies_sold.items()
+            company.premium_rates.get(line_id, self.base_market_rates[line_id]) * policies
+            for line_id, policies in company.policies_sold.items()
         ) / 4  # Quarterly revenue
         
         # Add premium revenue to cash
-        self.player_company.cash += premium_revenue
+        company.cash += premium_revenue
         
         claims = []
         
         # Generate regular claims
-        for line_id, policies in self.player_company.policies_sold.items():
+        for line_id, policies in company.policies_sold.items():
+            if policies <= 0:
+                continue
+                
+            state_id = line_id.split("_")[0]
             segment = self.market_segments[line_id]
             base_risk = segment.base_risk
             
@@ -230,10 +238,7 @@ class GameState:
             
             # Generate catastrophe claims for home insurance
             if "_home" in line_id:  # Only home insurance has catastrophe risk
-                state_id = line_id.split("_")[0]
-                cat_risk = self.states[state_id]["catastrophe_risk"] / 4  # Quarterly risk
-                
-                if np.random.random() < cat_risk:  # Catastrophe occurs
+                if self.market.generate_catastrophe(state_id):
                     # Affect 10-30% of policies in the state
                     affected_ratio = np.random.uniform(0.1, 0.3)
                     affected_policies = int(policies * affected_ratio)
@@ -251,33 +256,7 @@ class GameState:
                             "type": "catastrophe"
                         })
         
-        self.player_company.process_claims(claims)
-    
-    def _update_market_demand(self):
-        """Update market demand based on various factors."""
-        for state_id, state_info in self.states.items():
-            for line in ["home", "auto"]:
-                segment = self.market_segments[f"{state_id}_{line}"]
-                
-                # Economic cycle effect (simple sine wave)
-                economic_cycle = np.sin(self.current_turn / 8) * 0.1
-                
-                # State-specific seasonal effects
-                if state_id == "FL":
-                    # Florida has stronger seasonal effects (snowbirds)
-                    seasonal_effect = np.sin(self.current_turn / 4) * 0.15
-                else:
-                    seasonal_effect = np.sin(self.current_turn / 4) * 0.05
-                
-                # Random market fluctuation
-                market_fluctuation = np.random.normal(0, 0.05)
-                
-                # Combined effect
-                total_effect = 1 + economic_cycle + seasonal_effect + market_fluctuation
-                
-                # Update demand with limits
-                new_demand = int(segment.current_demand * total_effect)
-                segment.current_demand = max(0, min(segment.market_size, new_demand))
+        company.process_claims(claims)
     
     def _calculate_investment_returns(self):
         """Calculate returns from investments including dividends/interest and price changes."""
@@ -305,24 +284,51 @@ class GameState:
     
     def _generate_financial_report(self):
         """Generate a financial report for the current turn."""
+        # Generate report for player company
+        self.financial_history.append(self._generate_company_report(self.player_company))
+        
+        # Generate reports for AI competitors
+        for competitor in self.ai_competitors:
+            competitor.financial_history.append(self._generate_company_report(competitor))
+    
+    def _generate_company_report(self, company):
+        """Generate a financial report for a specific company."""
         # Calculate revenue from premiums
         premium_revenue = sum(
-            self.player_company.premium_rates.get(line_id, self.base_market_rates[line_id]) * policies
-            for line_id, policies in self.player_company.policies_sold.items()
+            company.premium_rates.get(line_id, self.base_market_rates[line_id]) * policies
+            for line_id, policies in company.policies_sold.items()
         ) / 4  # Quarterly revenue
         
         # Calculate investment returns
-        investment_income, unrealized_gains = self._calculate_investment_returns()
+        investment_income = 0
+        unrealized_gains = 0
+        
+        # Update asset prices and calculate income
+        for asset_name, asset in self.investment_assets.items():
+            shares = company.investments.get(asset_name, 0)
+            if shares > 0:
+                # Calculate quarterly income (dividends/interest)
+                income = asset.get_quarterly_income(shares)
+                investment_income += income
+                
+                # Update price and calculate unrealized gains
+                old_price = asset.current_price
+                asset.update_price()
+                price_change = asset.current_price - old_price
+                unrealized_gains += price_change * shares
+        
+        # Add income to cash (dividends/interest are realized)
+        company.cash += investment_income
         
         # Calculate claims from this turn
         current_claims = sum(
             claim["amount"]
-            for claim in self.player_company.claims_history
+            for claim in company.claims_history
             if claim.get("turn") == self.current_turn
         )
         
         # Generate report
-        report = FinancialReport(
+        return FinancialReport(
             period=self.current_turn,
             revenue=premium_revenue,
             claims_paid=current_claims,
@@ -330,9 +336,6 @@ class GameState:
             unrealized_gains=unrealized_gains,    # Track separately
             operating_expenses=50000  # Fixed quarterly operating expenses
         )
-        
-        self.financial_history.append(report)
-        return report
     
     def buy_asset(self, asset_name: str, shares: int) -> bool:
         """Attempt to buy shares of an asset. Returns True if successful."""
@@ -348,6 +351,9 @@ class GameState:
         self.player_company.cash -= cost
         current_shares = self.player_company.investments.get(asset_name, 0)
         self.player_company.investments[asset_name] = current_shares + shares
+        
+        # Record the trade for market pressure
+        asset.record_trade(shares)
         return True
     
     def sell_asset(self, asset_name: str, shares: int) -> bool:
@@ -364,4 +370,11 @@ class GameState:
         
         self.player_company.cash += proceeds
         self.player_company.investments[asset_name] = current_shares - shares
-        return True 
+        
+        # Record the trade for market pressure (negative for sells)
+        asset.record_trade(-shares)
+        return True
+
+    def _update_policies(self):
+        """Legacy method, no longer used. Marketing dynamics now handled by MarketDynamics class."""
+        pass 

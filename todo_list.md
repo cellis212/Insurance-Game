@@ -9,14 +9,15 @@
 - [x] Market dynamics
 - [x] Two-state operations
 - [x] Catastrophic events
+- [x] Data visualization with R
 
 ## Current Sprint
 - [ ] Code Organization:
   - [x] Split investment logic into investments.py
   - [x] Create market_dynamics.py for market-related functions
   - [ ] Move UI components into separate files
-  - [ ] Create utils.py for helper functions
-  - [ ] Add proper type hints throughout codebase
+  - [x] Create utils.py for helper functions
+  - [x] Add proper type hints throughout codebase
   - [ ] Add docstrings and comments
 
 ## Next Features

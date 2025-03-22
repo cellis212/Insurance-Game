@@ -1,0 +1,29 @@
+# nolint start: line_length_linter, trailing_whitespace_linter, indentation_linter, object_name_linter.
+
+[project]
+name = "Insurance Simulation Game"
+version = "1.0.0"
+description = "A simulation game about running an insurance company"
+keywords = ["simulation", "insurance", "pygame", "game"]
+homepage = ""
+authors = ["Game Developer"]
+python = ">=3.9"
+
+[build]
+entry = "main.py"
+targets = ["web"]
+build-path = "build"
+run-command = "python main.py"
+
+[web]
+modules = ["pygame"]
+title = "Insurance Simulation Game"
+icon = "icon.png"
+app-name = "insurancesim"
+renderer = "canvas"
+viewport-width = 1280
+viewport-height = 720
+viewport-resizable = true
+orientation = "landscape"
+csp = "default"
+fullscreen = false 

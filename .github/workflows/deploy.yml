@@ -1,0 +1,66 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main  # or master, depending on your default branch name
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pygame pygbag
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      
+      - name: Create icons
+        run: |
+          python create_icons.py
+      
+      - name: Build with Pygbag
+        run: |
+          python -m pygbag --ume_block 0 --build .
+      
+      - name: Add PWA support
+        run: |
+          cp web_manifest.json build/web/manifest.json
+          cp icon-192.png build/web/
+          cp icon-512.png build/web/
+          cp service-worker.js build/web/
+          
+          # Add PWA meta tags to the index.html
+          sed -i 's/<head>/<head>\n    <link rel="manifest" href="manifest.json">\n    <meta name="theme-color" content="#0066cc">\n    <meta name="mobile-web-app-capable" content="yes">\n    <meta name="apple-mobile-web-app-capable" content="yes">\n    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n    <link rel="apple-touch-icon" href="icon-192.png">/' build/web/index.html
+          
+          # Add service worker registration
+          sed -i 's/<\/body>/<script>\nif ("serviceWorker" in navigator) {\n  window.addEventListener("load", function() {\n    navigator.serviceWorker.register("\/service-worker.js")\n      .then(function(registration) {\n        console.log("Service Worker registered with scope:", registration.scope);\n      })\n      .catch(function(error) {\n        console.error("Service Worker registration failed:", error);\n      });\n  });\n}\n<\/script>\n<\/body>/' build/web/index.html
+      
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@4.1.5
+        with:
+          branch: gh-pages
+          folder: build/web
+          
+      - name: Create deployment summary
+        run: |
+          echo "## Deployment Complete! :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The game has been deployed to GitHub Pages and should be available shortly at:" >> $GITHUB_STEP_SUMMARY
+          echo "https://$(echo $GITHUB_REPOSITORY | cut -d'/' -f1).github.io/$(echo $GITHUB_REPOSITORY | cut -d'/' -f2)/" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Features enabled:**" >> $GITHUB_STEP_SUMMARY
+          echo "- :globe_with_meridians: Browser play" >> $GITHUB_STEP_SUMMARY
+          echo "- :iphone: Mobile and touch support" >> $GITHUB_STEP_SUMMARY
+          echo "- :floppy_disk: LocalStorage saves" >> $GITHUB_STEP_SUMMARY
+          echo "- :cloud: PWA for offline play" >> $GITHUB_STEP_SUMMARY 
