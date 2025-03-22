@@ -1,3 +1,26 @@
+"""
+UI Components package for Insurance Simulation Game.
+Contains reusable UI elements for building game screens.
+"""
+
+from .colors import Colors
+from .button import Button
+from .panel import Panel
+from .slider import Slider
+from .icons import Icons
+from .background import Background
+from .share_dialog import ShareDialog
+
+__all__ = [
+    'Colors',
+    'Button',
+    'Panel',
+    'Slider',
+    'Icons',
+    'Background',
+    'ShareDialog'
+]
+
 import pygame
 
 class Colors:
