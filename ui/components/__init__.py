@@ -10,6 +10,7 @@ from .slider import Slider
 from .icons import Icons
 from .background import Background
 from .share_dialog import ShareDialog
+from ui.components.base_component import BaseComponent
 
 __all__ = [
     'Colors',
@@ -18,7 +19,8 @@ __all__ = [
     'Slider',
     'Icons',
     'Background',
-    'ShareDialog'
+    'ShareDialog',
+    'BaseComponent'
 ]
 
 import pygame
